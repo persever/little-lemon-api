@@ -1,13 +1,19 @@
-# Welcome to Kelly's Little Lemon API
+# Kelly's Little Lemon API
+
+This is the capstone project for the [Meta Back-End Developer Professional Certificate](https://www.coursera.org/professional-certificates/meta-back-end-developer) course "APIs", built using the Django REST Framework.
 
 ## Get started
 
 Start a terminal window in top level of this repo, and run each of the following:
 
 `pipenv shell`
+
 `pipenv install`
+
 `python manage.py makemigrations`
+
 `python manage.py migrate`
+
 `python manage.py runserver`
 
 ## Access
@@ -19,7 +25,7 @@ Note: The admin user has full access to all functionality.
 - Manager username: `Lemon`
 - Crew username: `Sana`
 
-Existing usernames are case-sensitive and just the user's name.
+Usernames are case-sensitive.
 
 ### Credentials
 - Password (all existing users): `littlelemon123`
@@ -34,6 +40,7 @@ Existing usernames are case-sensitive and just the user's name.
     - **Additional functionality:** View list of Manager names (`GET`), remove user from group (`DELETE`)
 2.	You can access the manager group with an admin token
     - **Endpoint:** */api/groups/manager/users/*
+    - **Note:** For endpoints requiring auth tokens for access, the token prefix is "Bearer"
 3.	The admin can add menu items
     - **Endpoint:** */api/menu-items/*
     - **Method:** `POST`
@@ -65,13 +72,19 @@ Existing usernames are case-sensitive and just the user's name.
     - **Token endpoint for access and refresh tokens:** */api/token/* to acquire access and refresh tokens (`POST` with *username* and *password* fields), */api/token/refresh* to use refresh token (`POST` with *refresh* field)
     - **Web login path:** */api/login/*
     - **Additional functionality:** Log out from web view at */api/logout/*
-13. Customers can browse all categories 
-<!-- 14. Customers can browse all the menu items at once -->
-15. Customers can browse menu items by category
-    - **Endpoint:** */api/menu-items/?category__title={{case-sensitive category title}}* (use */api/categories* to identify existing category titles)
+13. Customers can browse all categories
+    - **Endpoint:** */api/categories/*
     - **Method:** `GET`
-<!-- 16. Customers can paginate menu items -->
+14. Customers can browse all the menu items at once
+    - **Endpoint:** */api/menu-items/?viewall=True*
+    - **Method:** `GET`
+15. Customers can browse menu items by category
+    - **Endpoint:** */api/menu-items/?category__title={{case-sensitive category title}}* (use */api/categories/* to identify existing category titles)
+    - **Method:** `GET`
+16. Customers can paginate menu items
+    - **Endpoint:** */api/menu-items/?page={{page number}}*
 17. Customers can sort menu items by price
+    - **Endpoint:** */api/menu-items/?sortby=price* (or *=-price* for ascending prices) **NOTE THE QUERY PARAMETER IS "sortby", NOT THE DRF DEFAULT "ordering"
 <!-- 18. Customers can add menu items to the cart -->
 <!-- 19. Customers can access previously added items in the cart -->
 <!-- 20. Customers can place orders -->

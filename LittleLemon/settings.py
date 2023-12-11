@@ -162,7 +162,7 @@ REST_FRAMEWORK = {
         'anon':'2/minute',
         'user':'3/minute',
     },
-    'PAGE_SIZE': 5,
+    'ORDERING_PARAM': 'sortby',
 }
 
 DJOSER = {

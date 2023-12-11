@@ -2,7 +2,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.views import auth_login, auth_logout
 from django.shortcuts import get_object_or_404, redirect, render
-from rest_framework import status, viewsets
+from rest_framework import pagination, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
@@ -20,12 +20,16 @@ class CategoriesViewSet(viewsets.ModelViewSet):
             return [IsAdminUser()]
         return [IsAuthenticated()]
 
+class MenuPagination(pagination.PageNumberPagination):
+    page_size = 10
 class MenuItemsViewSet(viewsets.ModelViewSet):
     queryset = MenuItem.objects.select_related('category').all()
     serializer_class = MenuItemSerializer
 
     filterset_fields=['category__title', 'featured']
     ordering_fields=['price']
+    ordering=['category__title']
+    pagination_class=MenuPagination
     search_fields=['title', 'category__title']
 
     def get_permissions(self):
@@ -35,6 +39,12 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
             return [IsManager()]
         return [IsAuthenticated()]
     
+    def list(self, req):
+        print('REQ.DATA IS', req.data)
+        if (req.GET.get('viewall') == True or req.GET.get('viewall') == 'true'):
+            self.pagination_class.page_size = len(self.queryset)
+        return super().list(self, req)
+
     def update(self, req, *args, **kwargs):
         kwargs['partial'] = True
         return super().update(req, *args, **kwargs)
