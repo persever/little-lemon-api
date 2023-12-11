@@ -10,7 +10,19 @@ Start a terminal window in top level of this repo, and run each of the following
 `python manage.py migrate`
 `python manage.py runserver`
 
-## Functionality requirements
+## Access
+
+Note: The admin user has full access to all functionality.
+
+- Admin username: `superuser`
+- Manager username: `Lemon`
+- Crew username: `Sana`
+
+- Password (all existing users): `littlelemon123`
+
+## Features
+### Functionality requirements
+
 1.	The admin can assign users to the manager group
     - **Endpoint:** */api/groups/manager/users/*
     - **Method:** `POST`
@@ -30,12 +42,16 @@ Start a terminal window in top level of this repo, and run each of the following
     - **Endpoint:** */api/token/*
     - **Method:** `POST`
     - **Form fields:** *username*, *password*
-<!-- 6.	Managers can update the item of the day
+6.	Managers can update the item of the day
     - **Endpoint:** */api/menu-items/<id\>*
     - **Method:** `PATCH`
     - **Form field:** *featured*
-    - **Additional functionality:** To find the current featured item, make a `GET` request to *api/menu-items/* with the query string *?featured=True* -->
-<!-- 7.	Managers can assign users to the delivery crew -->
+    - **Additional functionality:** To find the current featured item, make a `GET` request to *api/menu-items/* with the query string *?featured=True*
+7.	Managers can assign users to the delivery crew
+    - **Endpoint:** */api/groups/crew/users/*
+    - **Method:** `POST`
+    - **Form fields:** *username*
+    - **Additional functionality:** View list of Delivery crew names (`GET`), remove user from group (`DELETE`)
 <!-- 8.	Managers can assign orders to the delivery crew -->
 <!-- 9.	The delivery crew can access orders assigned to them -->
 <!-- 10. The delivery crew can update an order as delivered -->
