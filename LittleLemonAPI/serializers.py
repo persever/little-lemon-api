@@ -16,7 +16,8 @@ class MenuItemSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     
     def validate(self, attrs):
-        attrs['title'] = bleach.clean(attrs['title'])
+        if 'title' in attrs:
+            attrs['title'] = bleach.clean(attrs['title'])
         # for attr in attrs:
         #     attrs[attr] = bleach.clean(attrs[attr])
 
@@ -24,10 +25,9 @@ class MenuItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MenuItem
-        fields = ['id', 'title', 'price', 'stock', 'price_after_tax', 'category', 'category_id']
+        fields = ['id', 'category', 'category_id', 'featured', 'price', 'price_after_tax', 'title']
         extra_kwargs = {
             'price': { 'min_value': 2 },
-            'stock': { 'source': 'inventory', 'min_value': 0 },
             'title': {
                 'validators': [
                     UniqueValidator(queryset=MenuItem.objects.all())
@@ -37,7 +37,6 @@ class MenuItemSerializer(serializers.ModelSerializer):
 
     def calculate_tax(self, product:MenuItem):
         return round(product.price * Decimal(1.1), 2)
-    
 
 class RatingSerializer(serializers.ModelSerializer): 
     user = serializers.PrimaryKeyRelatedField( 

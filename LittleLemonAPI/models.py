@@ -9,13 +9,28 @@ class Category(models.Model):
 
     def str(self)-> str:
         return self.title
+    
+    class Meta:
+        verbose_name_plural = 'Categories'
 
 class MenuItem(models.Model):
-    title = models.CharField(max_length=255)
-    price = currency_field
-    # inventory = models.SmallIntegerField()
-    featured = models.BooleanField(db_index=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, default=1)
+    featured = models.BooleanField(db_index=True)
+    price = currency_field
+    title = models.CharField(max_length=255)
+
+    def save(self, *args, **kwargs):
+        if self.featured:
+            current_featured = MenuItem.objects.filter(featured=True).first()
+            if (current_featured):
+                current_featured.featured = False
+                current_featured.save()
+        super().save(*args, **kwargs)
+
+class Rating(models.Model):
+    menuitem_id = models.SmallIntegerField()
+    rating = models.SmallIntegerField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 # class Cart(models.Model):
 #     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -43,8 +58,3 @@ class MenuItem(models.Model):
 
 #     class Meta:
 #         unique_together = ('menuitem', 'order')
-
-class Rating(models.Model):
-    menuitem_id = models.SmallIntegerField()
-    rating = models.SmallIntegerField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE)

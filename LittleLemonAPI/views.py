@@ -1,14 +1,12 @@
 from django.contrib.auth.models import User, Group
-from django.core import serializers
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
-from rest_framework.decorators import api_view, permission_classes, throttle_classes
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+from rest_framework import viewsets
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import BasePermission, IsAdminUser, IsAuthenticated
 
 from .models import MenuItem, Category, Rating
 from .serializers import MenuItemSerializer, CategorySerializer, RatingSerializer
+from .helpers.view_helpers import success_resp, bad_req_resp
 
 class CategoriesViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -20,11 +18,26 @@ class CategoriesViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
 class MenuItemsViewSet(viewsets.ModelViewSet):
-    queryset = MenuItem.objects.all()
+    queryset = MenuItem.objects.select_related('category').all()
     serializer_class = MenuItemSerializer
 
-    ordering_fields=['price','inventory']
-    search_fields=['title','category__title']
+    filterset_fields=['featured']
+    ordering_fields=['price']
+    search_fields=['title', 'category__title']
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return []
+        elif self.request.method == 'POST' or self.request.method == 'PATCH':
+            if self.request.user.groups.filter(name='Manager').exists():
+                return [BasePermission()]
+            else:
+                return [IsAdminUser()]
+        return [IsAuthenticated()]
+    
+    def update(self, req, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().update(req, *args, **kwargs)
 
 class RatingsViewSet(viewsets.ModelViewSet):
     queryset = Rating.objects.all()
@@ -32,40 +45,6 @@ class RatingsViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         return [IsAuthenticated()]
-
-def success_resp(message='', data={}):
-    if message:
-        message = ' ' + message
-    return Response({'message':'Success!' + message,'data': {**data}}, status.HTTP_200_OK)
-
-def bad_req_resp(message='', data={}):
-    if message:
-        message = ' ' + message
-    return Response({'message':'Bad request.' + message,'data': {**data}}, status.HTTP_400_BAD_REQUEST)
-
-# @api_view()
-# def menu(req):
-#     items = MenuItem.objects.select_related('category').all()
-    
-#     category_name = req.query_params.get('category')
-#     if category_name:
-#         items = items.filter(category__title=category_name)
-    
-#     to_price = req.query_params.get('to_price')
-#     if to_price:
-#         items = items.filter(price=to_price)
-    
-#     search = req.query_params.get('search')
-#     if search:
-#         items = items.filter(title__contains=search)
-
-#     serialized_item = MenuItemSerializer(items, many=True)
-#     return Response({'data':serialized_item.data}, template_name='menu-items.html')
-
-@api_view()
-@permission_classes([IsAuthenticated])
-def secret(req):
-    return Response({'message':'This is the secret message!'}, status.HTTP_200_OK)
 
 @api_view(['DELETE','GET','POST'])
 @permission_classes([IsAdminUser])
@@ -99,14 +78,3 @@ def manager(req):
             raise e
 
     return success_resp(message, {'managers':manager_names})
-
-@api_view()
-@throttle_classes([AnonRateThrottle])
-def throttle_check(req):
-    return success_resp()
-        
-@api_view()
-@permission_classes([IsAuthenticated])
-@throttle_classes([UserRateThrottle])
-def throttle_check_auth(req):
-    return success_resp()
