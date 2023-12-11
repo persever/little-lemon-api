@@ -1,0 +1,13 @@
+<div>
+	<h2>Account logout</h2>
+	{% if user.is_authenticated %}
+	You are logged in as {{ user.username }}.
+		<form method="post" novalidate>
+			{% csrf_token %}
+			<input type="submit" value="Log out">
+		</form>
+	{% else %}
+	<p>You are not logged in.</p>
+	<a href="/api/login">Log in</a>
+	{% endif %}
+</div>

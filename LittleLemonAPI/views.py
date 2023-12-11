@@ -1,13 +1,15 @@
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User, Group
-from django.shortcuts import get_object_or_404
+from django.contrib.auth.views import auth_login, auth_logout
+from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
-from .helpers.view_helpers import success_resp, bad_req_resp
-from .models import MenuItem, Category, Rating
-from .permissions import ManagerPermission
-from .serializers import MenuItemSerializer, CategorySerializer, RatingSerializer
+from .view_helpers.responses import success_resp, bad_req_resp
+from .models import Category, MenuItem, Order, Rating
+from .permissions import IsCrew, IsManager
+from .serializers import CategorySerializer, MenuItemSerializer, OrderSerializer, RatingSerializer
 
 class CategoriesViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -22,7 +24,7 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
     queryset = MenuItem.objects.select_related('category').all()
     serializer_class = MenuItemSerializer
 
-    filterset_fields=['featured']
+    filterset_fields=['category__title', 'featured']
     ordering_fields=['price']
     search_fields=['title', 'category__title']
 
@@ -30,12 +32,22 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
         if self.request.method == 'GET':
             return []
         elif self.request.method == 'POST' or self.request.method == 'PATCH':
-            return [ManagerPermission()]
+            return [IsManager()]
         return [IsAuthenticated()]
     
     def update(self, req, *args, **kwargs):
         kwargs['partial'] = True
         return super().update(req, *args, **kwargs)
+
+class OrdersViewSet(viewsets.ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'GET' or self.request.method == 'PATCH':
+            return [IsManager(), IsCrew()]
+        elif self.request.method == 'POST':
+            return [IsManager()]
 
 class RatingsViewSet(viewsets.ModelViewSet):
     queryset = Rating.objects.all()
@@ -85,7 +97,7 @@ def manager(req):
 # In a professional setting, this and the above view "manager" should be refactored
 # to use shared functions in order to keep the code DRY.
 @api_view(['DELETE','GET','POST'])
-@permission_classes([ManagerPermission])
+@permission_classes([IsManager])
 def crew(req):
     crew_group = Group.objects.get(name='Delivery crew')
     crew_users = User.objects.filter(groups__name='Delivery crew')
@@ -121,3 +133,21 @@ def crew(req):
             raise e
 
     return success_resp(message, data, http_status)
+
+def register(req):
+    if req.method == "POST":
+        form = UserCreationForm(req.POST)
+        if form.is_valid():
+            user = form.save()
+            auth_login(req, user)
+            success_resp("Registration successful.")
+
+        bad_req_resp("Unsuccessful registration.")
+
+    form = UserCreationForm()
+    return render(request=req, template_name="register.html", context={"register_form":form})
+
+def logout(req):
+    if req.method == "POST":
+        auth_logout(req)
+    return render(request=req, template_name="logout.html")

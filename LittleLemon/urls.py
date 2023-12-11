@@ -19,6 +19,7 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import TokenBlacklistView, TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
+    path('__debug__/', include('debug_toolbar.urls')),
     path('admin/', admin.site.urls),
     path('api/', include('LittleLemonAPI.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name="token_obtain_pair"),
@@ -26,5 +27,4 @@ urlpatterns = [
     path('api/token/blacklist', TokenBlacklistView.as_view(), name="token_blacklist"),
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
-    path('__debug__/', include('debug_toolbar.urls')),
 ]

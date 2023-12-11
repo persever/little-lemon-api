@@ -1,9 +1,10 @@
 import bleach
 from decimal import Decimal
 from django.contrib.auth.models import User 
+from django.contrib.auth.password_validation import validate_password 
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
-from .models import Category, MenuItem, Rating
+from .models import Category, MenuItem, Order, Rating
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -37,6 +38,11 @@ class MenuItemSerializer(serializers.ModelSerializer):
 
     def calculate_tax(self, product:MenuItem):
         return round(product.price * Decimal(1.1), 2)
+
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['id', 'date', 'delivery_crew', 'status', 'total', 'user']
 
 class RatingSerializer(serializers.ModelSerializer): 
     user = serializers.PrimaryKeyRelatedField( 
