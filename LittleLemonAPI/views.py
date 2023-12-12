@@ -1,17 +1,18 @@
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User, Group
 from django.contrib.auth.views import auth_login, auth_logout
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.shortcuts import get_object_or_404, render, redirect
-from rest_framework import status, viewsets
+from django.shortcuts import render, redirect
+from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from .models import CartItem, Category, MenuItem, Order, Rating
 from .paginators import MenuPagination
-from .permissions import is_crew, is_customer, is_manager, IsCrew, IsManager
+from .permissions import is_crew, is_customer, is_manager, IsAdminOrManager, IsCrew, IsManager
 from .serializers import CategorySerializer, MenuItemSerializer, OrderSerializer, RatingSerializer
 
+from .view_helpers.group_helper import group_helper
 from .view_helpers.responses import success_resp, bad_req_resp
 from .view_helpers.validators import is_valid_single_field_req
 
@@ -79,7 +80,7 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
         return super().update(req, *args, **kwargs)
 
 class OrdersViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all()
+    queryset = Order.objects.select_related('menu_item').all()
     serializer_class = OrderSerializer
 
     def get_permissions(self):
@@ -99,12 +100,16 @@ class OrdersViewSet(viewsets.ModelViewSet):
         req = self.request
         user = req.user
         if user.is_superuser or is_manager(req):
-            return self.queryset
+            return Order.objects.select_related('menu_item').all()
         if is_crew(req):
-            return self.queryset.filter(delivery_crew=user)
-        return self.queryset.filter(user=user)
+            return Order.objects.select_related('menu_item').filter(delivery_crew=user)
+        return Order.objects.filter(user=user)
 
     def update(self, req, *args, **kwargs):
+        status = req.data.get('status')
+        if status and status.lower() != 'delivered':
+            raise ValidationError(message='"status" field may only be updated to "delivered". When an order is created, the default status is "pending" and when a Delivery crew is assigned it automatically updates to "assigned".', code='invalid')
+
         kwargs['partial'] = True
         return super().update(req, *args, **kwargs)
 
@@ -115,18 +120,23 @@ class RatingsViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         return [IsAuthenticated()]
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def place_order(req, total):
+    Order.objects.create(total=round(float(total), 2),user=req.user)
+    return redirect('orders')
+
 @api_view(['GET', 'POST', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def cart(req):
+def cart(req, menu_item_id=None):
     if req.method == 'POST':
-        menu_item_id = req.GET.get('menu_item_id')
         if menu_item_id:
             menu_item = MenuItem.objects.get(id=menu_item_id)
         else:
             menu_item_title = req.data.get('menu_item_title')
             menu_item = MenuItem.objects.get(title=menu_item_title)
 
-        cart_item, create = CartItem.objects.get_or_create(
+        cart_item, created = CartItem.objects.get_or_create(
             menu_item=menu_item,
             user=req.user,
         )
@@ -142,7 +152,11 @@ def cart(req):
         cart_item.delete()
 
     items = CartItem.objects.select_related('menu_item').filter(user=req.user)
-    total = round(sum(item.menu_item.price * item.quantity for item in items), 2)
+    total = 0
+    total_after_tax = 0
+    for item in items:
+        total += item.menu_item.price
+        total_after_tax += MenuItemSerializer.calculate_tax(MenuItem, item.menu_item)
 
     return render(
         request=req,
@@ -150,7 +164,9 @@ def cart(req):
         context={
             'cart_is_empty': len(items) == 0,
             'items': items,
+            'tax': total_after_tax - total,
             'total': total,
+            'total_after_tax': total_after_tax,
             'username': req.user.username
         }
     )
@@ -158,80 +174,12 @@ def cart(req):
 @api_view(['DELETE','GET','POST'])
 @permission_classes([IsAdminUser])
 def manager(req):
-    manager_group = Group.objects.get(name='Manager')
-    manager_users = User.objects.filter(groups__name='Manager')
+    return group_helper(req, 'Manager', 'managers')
 
-    manager_names = set()
-    for manager in manager_users.values():
-        manager_names.add(manager['username'])
-
-    message=''
-    data={'managers':manager_names}
-    http_status=status.HTTP_200_OK
-
-    username = req.data.get('username')
-    if username:
-        try:
-            user = get_object_or_404(User, username=username)
-            if req.method == 'POST':
-                if username in manager_names:
-                    return bad_req_resp(f'User {username} is already in the Manager group.')
-                else:
-                    manager_group.user_set.add(user)
-                    message=f'User {username} was assigned to the Manager group.'
-                    data = None
-                    http_status=status.HTTP_201_CREATED
-            elif req.method == 'DELETE':
-                if username not in manager_names:
-                    return bad_req_resp(f'User {username} is not in the Manager group.')
-                else:
-                    manager_group.user_set.remove(user)
-                    message=f'User {username} was removed from the Manager group.'
-                    data = None
-        except Exception as e:
-            raise e
-
-    return success_resp(message, data, http_status)
-
-# This and the above view 'manager' should be refactored
-# to use shared functions in order to keep the code DRY.
 @api_view(['DELETE','GET','POST'])
-@permission_classes([IsManager])
+@permission_classes([IsAdminOrManager])
 def crew(req):
-    crew_group = Group.objects.get(name='Delivery crew')
-    crew_users = User.objects.filter(groups__name='Delivery crew')
-
-    crew_names = set()
-    for crew in crew_users.values():
-        crew_names.add(crew['username'])
-
-    message=''
-    data={'crew':crew_names}
-    http_status=status.HTTP_200_OK
-
-    username = req.data.get('username')
-    if username:
-        try:
-            user = get_object_or_404(User, username=username)
-            if req.method == 'POST':
-                if username in crew_names:
-                    return bad_req_resp(f'User {username} is already in the Delivery crew group.')
-                else:
-                    crew_group.user_set.add(user)
-                    message=f'User {username} was assigned to the Delivery crew group.'
-                    data = None
-                    http_status=status.HTTP_201_CREATED
-            elif req.method == 'DELETE':
-                if username not in crew_names:
-                    return bad_req_resp(f'User {username} is not in the Delivery crew group.')
-                else:
-                    crew_group.user_set.remove(user)
-                    message=f'User {username} was removed from the Delivery crew group.'
-                    data = None
-        except Exception as e:
-            raise e
-
-    return success_resp(message, data, http_status)
+    return group_helper(req, 'Delivery crew', 'crew')
 
 def register(req):
     if req.method == 'POST':

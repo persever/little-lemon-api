@@ -1,6 +1,8 @@
 from datetime import date
-from django.contrib.auth.models import User
 from django.db import models
+from django.db.models.signals import post_save
+from django.contrib.auth.models import User
+from django.dispatch import receiver
 
 class Category(models.Model):
     slug = models.SlugField()
@@ -60,6 +62,18 @@ class OrderItem(PurchaseItem):
         constraints = [
             models.UniqueConstraint(fields=['menu_item', 'order'], name='Item already in order.'),
         ]
+
+@receiver(post_save, sender=Order)
+def clear_cart(sender, instance, created, **kwargs):
+    if created:
+        cart_items = CartItem.objects.filter(user=instance.user)
+        for cart_item in cart_items:
+            OrderItem.objects.create(
+                menu_item=cart_item.menu_item,
+                order=instance,
+                quantity=cart_item.quantity,
+            )
+            cart_item.delete()
 
 class Rating(models.Model):
     menuitem_id = models.SmallIntegerField()

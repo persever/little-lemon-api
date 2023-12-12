@@ -1,10 +1,9 @@
 import bleach
 from decimal import Decimal
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
-from .models import CartItem, Category, MenuItem, Order, OrderItem, PurchaseItem, Rating
+from .models import Category, MenuItem, Order, Rating
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -40,7 +39,6 @@ class MenuItemSerializer(serializers.ModelSerializer):
         return round(product.price * Decimal(1.1), 2)
 
 class OrderSerializer(serializers.ModelSerializer):
-    # total = serializers.SerializerMethodField(method_name='calculate_total')
     user = serializers.PrimaryKeyRelatedField( 
         queryset=User.objects.all(),
         default=serializers.CurrentUserDefault()
@@ -50,11 +48,6 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         validated_data = attrs
-
-        if 'status' in attrs:
-            if attrs['status'].lower() != 'delivered':
-                raise ValidationError(message="'status' field may only be updated to 'delivered'. When an order is created, the default status is 'pending' and when a Delivery crew is assigned it automatically updates to 'assigned'.", code="invalid")
-
         if 'delivery_crew' in attrs and 'status' not in attrs:
             validated_data['status'] = 'assigned'
 
@@ -64,35 +57,6 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ['id', 'date', 'delivery_crew', 'status', 'total', 'user']
 
-    # def calculate_total(self):
-    #     items = OrderItem.objects.filter(order=self)
-    #     total = round(sum(item.price * item.quantity for item in items), 2)
-
-# class PurchaseItemSerializer(serializers.ModelSerializer):
-#     menu_item = MenuItemSerializer()
-#     quantity = serializers.IntegerField()
-
-#     class Meta:
-#         abstract = True
-#         model = PurchaseItem
-#         fields = ['id', 'cart', 'menu_item', 'order', 'quantity']
-#         extra_kwargs = {
-#             'quantity': { 'max_value': 10, 'min_value': 0 }
-#         }
-
-# class CartItemSerializer(PurchaseItemSerializer):
-#     user = serializers.CurrentUserDefault()
-
-#     class Meta:
-#         model = CartItem
-#         fields = '__all__'
-
-# class CartItemSerializer(PurchaseItemSerializer):
-#     order = OrderSerializer()
-
-#     class Meta:
-#         model = OrderItem
-#         fields = '__all__'
 
 class RatingSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(

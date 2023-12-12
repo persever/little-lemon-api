@@ -9,6 +9,9 @@ def is_manager(req):
 def is_customer(req):
     return not is_crew(req) and not is_manager(req) and not req.user.is_superuser
 
+class IsAdminOrManager(permissions.BasePermission):
+    def has_permission(self, req, view):
+        return req.user.is_superuser or is_manager(req)
 class IsCrew(permissions.BasePermission):
     def has_permission(self, req, view):
         return is_crew(req)

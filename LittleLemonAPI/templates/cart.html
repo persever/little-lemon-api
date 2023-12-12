@@ -1,11 +1,13 @@
 <div>
     <h1 style="padding: 0px 4px;">{{ username }}'s cart</h1>
     <table style="padding: 0px 4px;">
+        {% if not cart_is_empty %}
         <tr>
             <th style="text-align:left; padding-right:12px;">Item</th>
             <th style="text-align:left; padding-right:12px;">Price</th>
             <th style="text-align:left; padding-right:12px;">Quantity</th>
         </tr>
+        {% endif %}
         {% for item in items %}
             <tr>
                 <td style="padding-right:12px">{{ item.menu_item.title }}</td>
@@ -16,12 +18,31 @@
         {% if cart_is_empty %}
             <tr style="padding: 0px 4px;">
                 <td>
-                    Nothing in the cart! To add items, browse the menu at <a href="/api/menu-items/">/api/menu-items/</a>.
+                    <p>
+                        Nothing in the cart!
+                    </p>
+                    <p>
+                        To add items, browse the menu at <a href="/api/menu-items/">/api/menu-items/</a>.
+                    </p>
                 </td>
             </tr>
         {% endif %}
     </table>
-    <div style="display:flex; flex-direction:row; font-weight:bold; padding:16px 4px;">
-        Total: ${{ total }}
+    <div style="padding:16px 4px;">
+        <div>
+            <span style="font-weight:bold;">Total: </span>${{ total }}
+        </div>
+        <div>
+            <span style="font-weight:bold;">Tax: </span>${{ tax }}
+        </div>
+        <div >
+            <span style="font-weight:bold;">Total after tax: </span>${{ total_after_tax }}
+        </div>
     </div>
+    {% if not cart_is_empty %}
+    <form action="{% url 'place_order' total_after_tax %}" method="POST" style="margin-bottom:0px;">
+        {% csrf_token %}
+        <button type="submit">Place order</button>
+    </form>
+    {% endif %}
 </div>

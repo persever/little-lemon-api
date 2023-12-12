@@ -103,11 +103,19 @@ Usernames are case-sensitive.
     - **Web browser endpoint (template view):** */api/menu-items/*
     - **Web browser action:** Click "Add to cart".
     - **API endpoint:** */api/cart/*
-    - **API methods:** `POST`, `DELETE`
+    - **API methods:** `POST`
     - **API field:** `menu_item_title`
+    - **API endpoint note:** The "Add to cart" HTML buttons in */api/menu-items/* will not work in an API client like Insomnia. If using an API client, the request must be made directly at */api/cart/*.
     - **Additional functionality:** Customers can remove items from their cart by placing a `DELETE` request to */api/cart/* with a `menu-item_title` identifying the item to be removed.
-<!-- 19. Customers can access previously added items in the cart -->
-<!-- 20. Customers can place orders -->
+19. Customers can access previously added items in the cart
+    - **Endpoint:** */api/cart/*
+    - **Note**: I interpret this requirement as simply meaning "customers can view their cart".
+20. Customers can place orders
+    - **Web browser endpoint (template view):** */api/cart/*
+    - **Web browser action:** Click "Place order".
+    - **API endpoint:** */api/orders/*
+    - **API methods:** `POST`
+    - **API field:** `total`
 21. Customers can browse their own orders
     - **Endpoint:** */api/orders/*
     - **Method:** `GET`

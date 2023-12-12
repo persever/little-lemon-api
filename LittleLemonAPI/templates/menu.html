@@ -13,7 +13,7 @@
                 <td style="padding-right:12px">${{ item.price }}</td>
                 {% if user_is_authenticated %}
                 <td>
-                    <form action="{% url 'cart' %}?menu_item_id={{ item.id }}" method="POST" style="margin-bottom:0px;">
+                    <form action="{% url 'add_to_cart' item.id %}" method="POST" style="margin-bottom:0px;">
                         {% csrf_token %}
                         <button type="submit">Add to cart</button>
                     </form>
