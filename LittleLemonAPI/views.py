@@ -1,15 +1,15 @@
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.views import auth_login, auth_logout
-from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404, render
+from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404, render, redirect
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
-from .models import Category, MenuItem, Order, OrderItem, Rating
+from .models import CartItem, Category, MenuItem, Order, Rating
 from .paginators import MenuPagination
-from .permissions import is_crew, is_manager, IsCrew, IsManager
+from .permissions import is_crew, is_customer, is_manager, IsCrew, IsManager
 from .serializers import CategorySerializer, MenuItemSerializer, OrderSerializer, RatingSerializer
 
 from .view_helpers.responses import success_resp, bad_req_resp
@@ -45,8 +45,33 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
     
     def list(self, req):
-        if (req.GET.get('viewall') == True or req.GET.get('viewall') == 'true'):
-            self.pagination_class.page_size = len(self.queryset)
+        if is_customer(req):
+            results = self.get_queryset()
+
+            category = req.GET.get('category')
+            if (category):
+                case_corrected_category_query = category[0].upper() + category[1::]
+                results = results.filter(category__title=case_corrected_category_query)
+
+            sortby = req.GET.get('sortby') or req.GET.get('ordering')
+            if (sortby):
+                results = results.order_by(sortby)
+
+            page = req.GET.get('page')
+            if (page != None):
+                paginated = Paginator(results, 4)
+                results = paginated.get_page(page)
+
+            return render(
+                request=req,
+                template_name='menu.html',
+                context={
+                    'results': results,
+                    'user_is_authenticated': req.user.is_authenticated,
+                    'no_results_found': len(results) == 0
+                }
+            )
+
         return super().list(req)
 
     def update(self, req, *args, **kwargs):
@@ -90,13 +115,45 @@ class RatingsViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         return [IsAuthenticated()]
 
-@api_view(['GET', 'PATCH'])
+@api_view(['GET', 'POST', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def cart_view(req):
-    items = OrderItem.objects.filter(user=req.user)
-    total = round(sum(item.price * item.quantity for item in items), 2)
+def cart(req):
+    if req.method == 'POST':
+        menu_item_id = req.GET.get('menu_item_id')
+        if menu_item_id:
+            menu_item = MenuItem.objects.get(id=menu_item_id)
+        else:
+            menu_item_title = req.data.get('menu_item_title')
+            menu_item = MenuItem.objects.get(title=menu_item_title)
 
-    return success_resp(data={'items': items, 'total': total})
+        cart_item, create = CartItem.objects.get_or_create(
+            menu_item=menu_item,
+            user=req.user,
+        )
+        cart_item.quantity += 1
+        cart_item.save()
+
+        return redirect('cart')
+
+    elif req.method == 'DELETE':
+        menu_item_title = req.data.get('menu_item_title')
+        menu_item = MenuItem.objects.get(title=menu_item_title)
+        cart_item = CartItem.objects.get(menu_item=menu_item)
+        cart_item.delete()
+
+    items = CartItem.objects.select_related('menu_item').filter(user=req.user)
+    total = round(sum(item.menu_item.price * item.quantity for item in items), 2)
+
+    return render(
+        request=req,
+        template_name='cart.html',
+        context={
+            'cart_is_empty': len(items) == 0,
+            'items': items,
+            'total': total,
+            'username': req.user.username
+        }
+    )
 
 @api_view(['DELETE','GET','POST'])
 @permission_classes([IsAdminUser])
@@ -136,7 +193,7 @@ def manager(req):
 
     return success_resp(message, data, http_status)
 
-# This and the above view "manager" should be refactored
+# This and the above view 'manager' should be refactored
 # to use shared functions in order to keep the code DRY.
 @api_view(['DELETE','GET','POST'])
 @permission_classes([IsManager])
@@ -177,19 +234,26 @@ def crew(req):
     return success_resp(message, data, http_status)
 
 def register(req):
-    if req.method == "POST":
+    if req.method == 'POST':
         form = UserCreationForm(req.POST)
         if form.is_valid():
             user = form.save()
             auth_login(req, user)
-            success_resp("Registration successful.")
+            success_resp('Registration successful.')
 
-        bad_req_resp("Unsuccessful registration.")
+        bad_req_resp('Unsuccessful registration.')
 
     form = UserCreationForm()
-    return render(request=req, template_name="register.html", context={"register_form":form})
+    return render(
+        request=req,
+        template_name='register.html',
+        context={'register_form': form}
+    )
 
 def logout(req):
-    if req.method == "POST":
+    if req.method == 'POST':
         auth_logout(req)
-    return render(request=req, template_name="logout.html")
+    return render(
+        request=req,
+        template_name='logout.html'
+    )

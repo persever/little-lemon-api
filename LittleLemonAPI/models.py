@@ -38,17 +38,27 @@ class Order(models.Model):
             self.date = date.today()
         return super().save(*args, **kwargs)
 
-class OrderItem(models.Model):
+class PurchaseItem(models.Model):
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items", null=True)
-    price = models.DecimalField(max_digits=6, decimal_places=2)
-    quantity = models.SmallIntegerField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="items", null=True)
+    quantity = models.SmallIntegerField(default=0)
+
+    class Meta:
+        abstract = True
+
+class CartItem(PurchaseItem):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="items")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['menu_item', 'user'], name='Item already in cart.'),
+        ]
+
+class OrderItem(PurchaseItem):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['menu_item', 'order'], name='Item already in order.'),
-            models.UniqueConstraint(fields=['menu_item', 'user'], name='Item already in cart.'),
         ]
 
 class Rating(models.Model):

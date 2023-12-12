@@ -6,6 +6,9 @@ def is_crew(req):
 def is_manager(req):
     return bool(req.user.groups.filter(name='Manager').exists())
 
+def is_customer(req):
+    return not is_crew(req) and not is_manager(req) and not req.user.is_superuser
+
 class IsCrew(permissions.BasePermission):
     def has_permission(self, req, view):
         return is_crew(req)

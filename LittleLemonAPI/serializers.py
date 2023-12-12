@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
-from .models import Category, MenuItem, Order, OrderItem, Rating
+from .models import CartItem, Category, MenuItem, Order, OrderItem, PurchaseItem, Rating
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -68,18 +68,31 @@ class OrderSerializer(serializers.ModelSerializer):
     #     items = OrderItem.objects.filter(order=self)
     #     total = round(sum(item.price * item.quantity for item in items), 2)
 
-class OrderItemSerializer(serializers.ModelSerializer):
-    menu_item = MenuItemSerializer()
-    order = OrderSerializer()
-    quantity = serializers.IntegerField()
-    user = serializers.CurrentUserDefault()
+# class PurchaseItemSerializer(serializers.ModelSerializer):
+#     menu_item = MenuItemSerializer()
+#     quantity = serializers.IntegerField()
 
-    class Meta:
-        model = OrderItem
-        fields = ['id', 'cart', 'menu_item', 'order', 'quantity']
-        extra_kwargs = {
-            'quantity': { 'max_value': 10, 'min_value': 0 }
-        }
+#     class Meta:
+#         abstract = True
+#         model = PurchaseItem
+#         fields = ['id', 'cart', 'menu_item', 'order', 'quantity']
+#         extra_kwargs = {
+#             'quantity': { 'max_value': 10, 'min_value': 0 }
+#         }
+
+# class CartItemSerializer(PurchaseItemSerializer):
+#     user = serializers.CurrentUserDefault()
+
+#     class Meta:
+#         model = CartItem
+#         fields = '__all__'
+
+# class CartItemSerializer(PurchaseItemSerializer):
+#     order = OrderSerializer()
+
+#     class Meta:
+#         model = OrderItem
+#         fields = '__all__'
 
 class RatingSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(

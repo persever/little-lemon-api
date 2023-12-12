@@ -1,0 +1,50 @@
+<div>
+    <h1 style="padding: 0px 4px;">Menu items</h1>
+    <table style="padding: 0px 4px;">
+        <tr>
+            <th style="text-align:left; padding-right:12px;">Item</th>
+            <th style="text-align:left; padding-right:12px;">Category</th>
+            <th style="text-align:left; padding-right:12px;">Price</th>
+        </tr>
+        {% for item in results %}
+            <tr>
+                <td style="padding-right:12px">{{ item.title }}</td>
+                <td style="padding-right:12px">{{ item.category.title }}</td>
+                <td style="padding-right:12px">${{ item.price }}</td>
+                {% if user_is_authenticated %}
+                <td>
+                    <form action="{% url 'cart' %}?menu_item_id={{ item.id }}" method="POST" style="margin-bottom:0px;">
+                        {% csrf_token %}
+                        <button type="submit">Add to cart</button>
+                    </form>
+                </td>
+                {% endif %}
+                <td style="padding-left:12px">
+                    {% if item.featured == True %}
+                    <div style="background-color:goldenrod; border-radius:4px; color:white; padding:4px; text-transform:uppercase;">
+                        Special
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        {% if no_results_found %}
+            <tr style="padding: 0px 4px;">
+                <td>
+                    No items found.
+                </td>
+            </tr>
+        {% endif %}
+    </table>
+    <div style="display:flex; flex-direction:row; padding:8px 0px;">
+        {% if not no_results_found %}
+        {% for num in results.paginator.page_range %}
+            {% if num == results.number %}
+                <span style="background-color:teal; color:white; padding:4px 8px; margin:0px 4px; text-decoration:none;">{{ num }}</span>
+            {% else %}
+                <a href="?page={{num}}" style="background-color:darkslategrey; color:white; padding:4px 9px; margin:0px 4px; text-decoration:none;">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        {% endif %}
+    </div>
+</div>

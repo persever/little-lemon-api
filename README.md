@@ -57,7 +57,7 @@ Usernames are case-sensitive.
     - **Endpoint:** */api/menu-items/<id\>*
     - **Method:** `PATCH`
     - **Form field:** `featured`
-    - **Additional functionality:** `featured` is the only `MenuItem` field Managers are allowed to update. When an item is set to `featured`, the current featured item (if there is one) has its `featured` field set to `False`. To view the current featured item, make a `GET` request to *api/menu-items/* with the query string *?featured=True*.
+    - **Additional functionality:** `featured` is the only `MenuItem` field Managers are allowed to update. When an item is set to `featured`, the current featured item (if there is one) has its `featured` field set to `False`.
 7.	Managers can assign users to the delivery crew
     - **Endpoint:** */api/groups/crew/users/*
     - **Method:** `POST`
@@ -88,16 +88,24 @@ Usernames are case-sensitive.
     - **Endpoint:** */api/categories/*
     - **Method:** `GET`
 14. Customers can browse all the menu items at once
-    - **Endpoint:** */api/menu-items/?viewall=True*
+    - **Endpoint:** */api/menu-items/*
     - **Method:** `GET`
+    - **Note:** The *menu-items/* endpoint shows all results by default. To paginate, add a page query *(?page={{page number}})* to the request.
 15. Customers can browse menu items by category
-    - **Endpoint:** */api/menu-items/?category__title={{case-sensitive category title}}* (use */api/categories/* to identify existing category titles)
+    - **Endpoint:** */api/menu-items/?category={{category title}}*
     - **Method:** `GET`
 16. Customers can paginate menu items
     - **Endpoint:** */api/menu-items/?page={{page number}}*
+    - **Note**: While staff see browsable JSON, customers and users not logged in see a template with page buttons. The buttons work in a web browser by updating the query string in the url, but if you are using an API client like Insomnia instead of a web browser you need to manually set the page query *(?page={{page number}})* in the request.
 17. Customers can sort menu items by price
-    - **Endpoint:** */api/menu-items/?sortby=price* (or *=-price* for ascending prices) **NOTE THE QUERY PARAMETER IS "sortby", NOT THE DRF DEFAULT "ordering"
-<!-- 18. Customers can add menu items to the cart -->
+    - **Endpoint:** */api/menu-items/?sortby=price* (or *=-price* for ascending prices)
+18. Customers can add menu items to the cart
+    - **Web browser endpoint (template view):** */api/menu-items/*
+    - **Web browser action:** Click "Add to cart".
+    - **API endpoint:** */api/cart/*
+    - **API methods:** `POST`, `DELETE`
+    - **API field:** `menu_item_title`
+    - **Additional functionality:** Customers can remove items from their cart by placing a `DELETE` request to */api/cart/* with a `menu-item_title` identifying the item to be removed.
 <!-- 19. Customers can access previously added items in the cart -->
 <!-- 20. Customers can place orders -->
 21. Customers can browse their own orders

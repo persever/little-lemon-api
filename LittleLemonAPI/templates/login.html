@@ -1,7 +1,7 @@
 <div>
 	<form method="post" novalidate>
 	  	{% csrf_token %}
-	    <h2>Account login</h2>
+	    <h1>Account login</h1>
 		{% for field in form %}
 			{{ field.label_tag }} 
 			{{ field }}

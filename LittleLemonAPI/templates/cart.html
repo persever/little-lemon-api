@@ -1,0 +1,27 @@
+<div>
+    <h1 style="padding: 0px 4px;">{{ username }}'s cart</h1>
+    <table style="padding: 0px 4px;">
+        <tr>
+            <th style="text-align:left; padding-right:12px;">Item</th>
+            <th style="text-align:left; padding-right:12px;">Price</th>
+            <th style="text-align:left; padding-right:12px;">Quantity</th>
+        </tr>
+        {% for item in items %}
+            <tr>
+                <td style="padding-right:12px">{{ item.menu_item.title }}</td>
+                <td style="padding-right:12px">${{ item.menu_item.price }}</td>
+                <td style="padding-right:12px">{{ item.quantity }}</td>
+            </tr>
+        {% endfor %}
+        {% if cart_is_empty %}
+            <tr style="padding: 0px 4px;">
+                <td>
+                    Nothing in the cart! To add items, browse the menu at <a href="/api/menu-items/">/api/menu-items/</a>.
+                </td>
+            </tr>
+        {% endif %}
+    </table>
+    <div style="display:flex; flex-direction:row; font-weight:bold; padding:16px 4px;">
+        Total: ${{ total }}
+    </div>
+</div>
