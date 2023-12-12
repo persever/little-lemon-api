@@ -36,7 +36,7 @@ Usernames are case-sensitive.
 1.	The admin can assign users to the manager group
     - **Endpoint:** */api/groups/manager/users/*
     - **Method:** `POST`
-    - **Form fields:** *username*
+    - **Form fields:** `username`
     - **Additional functionality:** View list of Manager names (`GET`), remove user from group (`DELETE`)
 2.	You can access the manager group with an admin token
     - **Endpoint:** */api/groups/manager/users/*
@@ -44,32 +44,43 @@ Usernames are case-sensitive.
 3.	The admin can add menu items
     - **Endpoint:** */api/menu-items/*
     - **Method:** `POST`
-    - **Form fields:** *title*, *price*, *category*, *featured*
+    - **Form fields:** `title`, `price`, `category`, `featured`
 4.	The admin can add categories
     - **Endpoint:** */api/categories/*
     - **Method:** `POST`
-    - **Form fields:** *title*, *slug*
+    - **Form fields:** `title`, `slug`
 5.	Managers can log in 
     - **Endpoint:** */api/token/*
     - **Method:** `POST`
-    - **Form fields:** *username*, *password*
+    - **Form fields:** `username`, `password`
 6.	Managers can update the item of the day
     - **Endpoint:** */api/menu-items/<id\>*
     - **Method:** `PATCH`
-    - **Form field:** *featured*
-    - **Additional functionality:** To find the current featured item, make a `GET` request to *api/menu-items/* with the query string *?featured=True*
+    - **Form field:** `featured`
+    - **Additional functionality:** When an item is set to `featured`, the current featured item (if there is one) has its `featured` field set to `False`. To view the current featured item, make a `GET` request to *api/menu-items/* with the query string *?featured=True*.
 7.	Managers can assign users to the delivery crew
     - **Endpoint:** */api/groups/crew/users/*
     - **Method:** `POST`
-    - **Form fields:** *username*
+    - **Form fields:** `username`
     - **Additional functionality:** View list of Delivery crew names (`GET`), remove user from group (`DELETE`)
-<!-- 8.	Managers can assign orders to the delivery crew -->
-<!-- 9.	The delivery crew can access orders assigned to them -->
-<!-- 10. The delivery crew can update an order as delivered -->
+8.	Managers can assign orders to the delivery crew
+    - **Endpoint:** */api/orders/<id\>*
+    - **Method:** `PATCH`
+    - **Form field:** `delivery_crew`
+    - **Note:** `delivery_crew` field uses user id. Adrian (id 4) and Sana (id 6) are existing users assigned dto the Delivery crew group. 
+    - **Additional functionality:** `delivery_crew` is the only field Managers are allowed to update. `status` has a default of "pending" if there is no `delivery_crew`, and automatically updates to "assigned" when a `delivery_crew` is set. Managers may view all orders at */api/orders/*.
+9.	The delivery crew can access orders assigned to them
+    - **Endpoint:** */api/orders/*
+    - **Method:** `GET`
+10. The delivery crew can update an order as delivered
+    - **Endpoint:** */api/orders/<id\>*
+    - **Method:** `PATCH`
+    - **Form field:** *status*
+    - **Additional functionality:** `status` is the only field Delivery crew are allowed to update, and they can only change the value to "delivered" as "pending" and "assigned" are set automatically.
 11. Customers can register
     - **Web registration path:** */api/register/*
 12. Customers can log in using their username and password and get access tokens
-    - **Token endpoint for access and refresh tokens:** */api/token/* to acquire access and refresh tokens (`POST` with *username* and *password* fields), */api/token/refresh* to use refresh token (`POST` with *refresh* field)
+    - **Token endpoint for access and refresh tokens:** */api/token/* to acquire access and refresh tokens (`POST` with `username` and `password` fields), */api/token/refresh* to use refresh token (`POST` with *refresh* field)
     - **Web login path:** */api/login/*
     - **Additional functionality:** Log out from web view at */api/logout/*
 13. Customers can browse all categories
@@ -88,4 +99,6 @@ Usernames are case-sensitive.
 <!-- 18. Customers can add menu items to the cart -->
 <!-- 19. Customers can access previously added items in the cart -->
 <!-- 20. Customers can place orders -->
-<!-- 21. Customers can browse their own orders -->
+21. Customers can browse their own orders
+    - **Endpoint:** */api/orders/*
+    - **Method:** `GET`

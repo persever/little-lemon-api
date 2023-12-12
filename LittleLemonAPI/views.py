@@ -1,14 +1,14 @@
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.views import auth_login, auth_logout
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render
 from rest_framework import pagination, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
 from .view_helpers.responses import success_resp, bad_req_resp
 from .models import Category, MenuItem, Order, Rating
-from .permissions import IsCrew, IsManager
+from .permissions import is_crew, is_manager, IsCrew, IsManager
 from .serializers import CategorySerializer, MenuItemSerializer, OrderSerializer, RatingSerializer
 
 class CategoriesViewSet(viewsets.ModelViewSet):
@@ -35,15 +35,15 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.request.method == 'GET':
             return []
-        elif self.request.method == 'POST' or self.request.method == 'PATCH':
+        elif self.request.method == 'PATCH':
+            # ideally limit to the one field 'featured
             return [IsManager()]
         return [IsAuthenticated()]
     
     def list(self, req):
-        print('REQ.DATA IS', req.data)
         if (req.GET.get('viewall') == True or req.GET.get('viewall') == 'true'):
             self.pagination_class.page_size = len(self.queryset)
-        return super().list(self, req)
+        return super().list(req)
 
     def update(self, req, *args, **kwargs):
         kwargs['partial'] = True
@@ -54,10 +54,30 @@ class OrdersViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
 
     def get_permissions(self):
-        if self.request.method == 'GET' or self.request.method == 'PATCH':
-            return [IsManager(), IsCrew()]
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        elif self.request.method == 'PATCH':
+            if (self.request.data.get('delivery_crew')):
+                return [IsManager()]
+            elif (self.request.data.get('status')):
+                return [IsCrew()]
         elif self.request.method == 'POST':
-            return [IsManager()]
+            return [IsAuthenticated()]
+
+        return [IsAdminUser()]
+    
+    def get_queryset(self):
+        req = self.request
+        user = req.user
+        if user.is_superuser or is_manager(req):
+            return self.queryset
+        if is_crew(req):
+            return self.queryset.filter(delivery_crew=user)
+        return self.queryset.filter(user=user)
+
+    def update(self, req, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().update(req, *args, **kwargs)
 
 class RatingsViewSet(viewsets.ModelViewSet):
     queryset = Rating.objects.all()
@@ -104,7 +124,7 @@ def manager(req):
 
     return success_resp(message, data, http_status)
 
-# In a professional setting, this and the above view "manager" should be refactored
+# This and the above view "manager" should be refactored
 # to use shared functions in order to keep the code DRY.
 @api_view(['DELETE','GET','POST'])
 @permission_classes([IsManager])

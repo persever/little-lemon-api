@@ -1,7 +1,8 @@
 import bleach
 from decimal import Decimal
 from django.contrib.auth.models import User 
-from django.contrib.auth.password_validation import validate_password 
+from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
 from .models import Category, MenuItem, Order, Rating
@@ -40,11 +41,30 @@ class MenuItemSerializer(serializers.ModelSerializer):
         return round(product.price * Decimal(1.1), 2)
 
 class OrderSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField( 
+        queryset=User.objects.all(),
+        default=serializers.CurrentUserDefault()
+    )
+    date = serializers.DateField(read_only=True)
+    status = serializers.CharField(max_length=255, default='pending')
+
+    def validate(self, attrs):
+        validated_data = attrs
+
+        if 'status' in attrs:
+            if attrs['status'].lower() != 'delivered':
+                raise ValidationError(message="'status' field may only be updated to 'delivered'. When an order is created, the default status is 'pending' and when a Delivery crew is assigned it automatically updates to 'assigned'.", code="invalid")
+
+        if 'delivery_crew' in attrs and 'status' not in attrs:
+            validated_data['status'] = 'assigned'
+
+        return super().validate(validated_data)
+
     class Meta:
         model = Order
         fields = ['id', 'date', 'delivery_crew', 'status', 'total', 'user']
 
-class RatingSerializer(serializers.ModelSerializer): 
+class RatingSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField( 
         queryset=User.objects.all(),
         default=serializers.CurrentUserDefault()
