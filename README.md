@@ -1,4 +1,4 @@
-# Kelly's Little Lemon API
+# Little Lemon API (Django REST Framework Practice Project)
 
 This is the capstone project for the [Meta Back-End Developer Professional Certificate](https://www.coursera.org/professional-certificates/meta-back-end-developer) course "APIs", built using the Django REST Framework.
 
@@ -57,7 +57,7 @@ Usernames are case-sensitive.
     - **Endpoint:** */api/menu-items/<id\>*
     - **Method:** `PATCH`
     - **Form field:** `featured`
-    - **Additional functionality:** When an item is set to `featured`, the current featured item (if there is one) has its `featured` field set to `False`. To view the current featured item, make a `GET` request to *api/menu-items/* with the query string *?featured=True*.
+    - **Additional functionality:** `featured` is the only `MenuItem` field Managers are allowed to update. When an item is set to `featured`, the current featured item (if there is one) has its `featured` field set to `False`. To view the current featured item, make a `GET` request to *api/menu-items/* with the query string *?featured=True*.
 7.	Managers can assign users to the delivery crew
     - **Endpoint:** */api/groups/crew/users/*
     - **Method:** `POST`
@@ -68,15 +68,16 @@ Usernames are case-sensitive.
     - **Method:** `PATCH`
     - **Form field:** `delivery_crew`
     - **Note:** `delivery_crew` field uses user id. Adrian (id 4) and Sana (id 6) are existing users assigned dto the Delivery crew group. 
-    - **Additional functionality:** `delivery_crew` is the only field Managers are allowed to update. `status` has a default of "pending" if there is no `delivery_crew`, and automatically updates to "assigned" when a `delivery_crew` is set. Managers may view all orders at */api/orders/*.
+    - **Additional functionality:** `delivery_crew` is the only `Order` field Managers are allowed to update. `status` has a default of "pending" if there is no `delivery_crew`, and automatically updates to "assigned" when a `delivery_crew` is set. Managers may view all orders at */api/orders/*.
 9.	The delivery crew can access orders assigned to them
     - **Endpoint:** */api/orders/*
     - **Method:** `GET`
+    - **Additional functionality:** Delivery crew can see only the orders assigned to them.
 10. The delivery crew can update an order as delivered
     - **Endpoint:** */api/orders/<id\>*
     - **Method:** `PATCH`
     - **Form field:** *status*
-    - **Additional functionality:** `status` is the only field Delivery crew are allowed to update, and they can only change the value to "delivered" as "pending" and "assigned" are set automatically.
+    - **Additional functionality:** `status` is the only `Order` field Delivery crew are allowed to update, and they can only change the value to "delivered" as "pending" and "assigned" are set automatically.
 11. Customers can register
     - **Web registration path:** */api/register/*
 12. Customers can log in using their username and password and get access tokens
@@ -102,3 +103,4 @@ Usernames are case-sensitive.
 21. Customers can browse their own orders
     - **Endpoint:** */api/orders/*
     - **Method:** `GET`
+    - **Additional functionality:** Customers can see only their own orders.

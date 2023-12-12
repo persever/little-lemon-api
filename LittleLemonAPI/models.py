@@ -1,16 +1,6 @@
 from datetime import date
-from django.db import models
 from django.contrib.auth.models import User
-
-# class Cart(models.Model):
-#     menuitem = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
-#     price = models.DecimalField(max_digits=6, decimal_places=2)
-#     quantity = models.SmallIntegerField()
-#     unit_price = models.DecimalField(max_digits=6, decimal_places=2)
-#     user = models.ForeignKey(User, on_delete=models.CASCADE)
-
-#     class Meta:
-#         unique_together = ('menuitem', 'user')
+from django.db import models
 
 class Category(models.Model):
     slug = models.SlugField()
@@ -48,15 +38,18 @@ class Order(models.Model):
             self.date = date.today()
         return super().save(*args, **kwargs)
 
-# class OrderItem(models.Model):
-#     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
-#     order = models.ForeignKey(Order, on_delete=models.CASCADE)
-#     price = models.DecimalField(max_digits=6, decimal_places=2)
-#     quantity = models.SmallIntegerField()
-#     unit_price = models.DecimalField(max_digits=6, decimal_places=2)
+class OrderItem(models.Model):
+    menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items", null=True)
+    price = models.DecimalField(max_digits=6, decimal_places=2)
+    quantity = models.SmallIntegerField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="items", null=True)
 
-#     class Meta:
-#         unique_together = ('menuitem', 'order')
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['menu_item', 'order'], name='Item already in order.'),
+            models.UniqueConstraint(fields=['menu_item', 'user'], name='Item already in cart.'),
+        ]
 
 class Rating(models.Model):
     menuitem_id = models.SmallIntegerField()

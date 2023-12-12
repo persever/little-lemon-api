@@ -1,11 +1,10 @@
 import bleach
 from decimal import Decimal
-from django.contrib.auth.models import User 
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator, UniqueValidator
-from .models import Category, MenuItem, Order, Rating
+from .models import Category, MenuItem, Order, OrderItem, Rating
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,6 +40,7 @@ class MenuItemSerializer(serializers.ModelSerializer):
         return round(product.price * Decimal(1.1), 2)
 
 class OrderSerializer(serializers.ModelSerializer):
+    # total = serializers.SerializerMethodField(method_name='calculate_total')
     user = serializers.PrimaryKeyRelatedField( 
         queryset=User.objects.all(),
         default=serializers.CurrentUserDefault()
@@ -64,8 +64,25 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ['id', 'date', 'delivery_crew', 'status', 'total', 'user']
 
+    # def calculate_total(self):
+    #     items = OrderItem.objects.filter(order=self)
+    #     total = round(sum(item.price * item.quantity for item in items), 2)
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    menu_item = MenuItemSerializer()
+    order = OrderSerializer()
+    quantity = serializers.IntegerField()
+    user = serializers.CurrentUserDefault()
+
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'cart', 'menu_item', 'order', 'quantity']
+        extra_kwargs = {
+            'quantity': { 'max_value': 10, 'min_value': 0 }
+        }
+
 class RatingSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField( 
+    user = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
         default=serializers.CurrentUserDefault()
     )

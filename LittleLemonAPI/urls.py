@@ -1,8 +1,9 @@
-from django.urls import path, re_path
-from django.contrib.auth.views import LoginView, LogoutView, logout_then_login
+from django.urls import path
+from django.contrib.auth.views import LoginView
 from . import views
 
 urlpatterns = [
+    path('cart/', views.cart_view),
     path('categories/', views.CategoriesViewSet.as_view({'get':'list','post':'create'})),
     path('categories/<int:pk>', views.CategoriesViewSet.as_view({'get':'retrieve'})),
     path('groups/manager/users/', views.manager),

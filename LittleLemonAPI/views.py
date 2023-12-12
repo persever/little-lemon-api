@@ -1,15 +1,19 @@
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.views import auth_login, auth_logout
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, render
-from rest_framework import pagination, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 
-from .view_helpers.responses import success_resp, bad_req_resp
-from .models import Category, MenuItem, Order, Rating
+from .models import Category, MenuItem, Order, OrderItem, Rating
+from .paginators import MenuPagination
 from .permissions import is_crew, is_manager, IsCrew, IsManager
 from .serializers import CategorySerializer, MenuItemSerializer, OrderSerializer, RatingSerializer
+
+from .view_helpers.responses import success_resp, bad_req_resp
+from .view_helpers.validators import is_valid_single_field_req
 
 class CategoriesViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -20,8 +24,6 @@ class CategoriesViewSet(viewsets.ModelViewSet):
             return [IsAdminUser()]
         return [IsAuthenticated()]
 
-class MenuPagination(pagination.PageNumberPagination):
-    page_size = 10
 class MenuItemsViewSet(viewsets.ModelViewSet):
     queryset = MenuItem.objects.select_related('category').all()
     serializer_class = MenuItemSerializer
@@ -35,9 +37,11 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.request.method == 'GET':
             return []
-        elif self.request.method == 'PATCH':
-            # ideally limit to the one field 'featured
-            return [IsManager()]
+        elif self.request.method == 'PATCH' or self.request.method == 'POST':
+            if is_valid_single_field_req(self, 'featured') == True:
+                return [IsManager()]
+            else:
+                return [IsAdminUser()]
         return [IsAuthenticated()]
     
     def list(self, req):
@@ -57,9 +61,9 @@ class OrdersViewSet(viewsets.ModelViewSet):
         if self.request.method == 'GET':
             return [IsAuthenticated()]
         elif self.request.method == 'PATCH':
-            if (self.request.data.get('delivery_crew')):
+            if (is_valid_single_field_req(self, 'delivery_crew') == True):
                 return [IsManager()]
-            elif (self.request.data.get('status')):
+            elif (is_valid_single_field_req(self, 'status') == True):
                 return [IsCrew()]
         elif self.request.method == 'POST':
             return [IsAuthenticated()]
@@ -85,6 +89,14 @@ class RatingsViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         return [IsAuthenticated()]
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def cart_view(req):
+    items = OrderItem.objects.filter(user=req.user)
+    total = round(sum(item.price * item.quantity for item in items), 2)
+
+    return success_resp(data={'items': items, 'total': total})
 
 @api_view(['DELETE','GET','POST'])
 @permission_classes([IsAdminUser])
