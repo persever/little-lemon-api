@@ -1,6 +1,6 @@
 # Little Lemon API (Django REST Framework Practice Project)
 
-This is the capstone project for the [Meta Back-End Developer Professional Certificate](https://www.coursera.org/professional-certificates/meta-back-end-developer) course "APIs", built using the Django REST Framework.
+This is the capstone project for the [Meta Back-End Developer Professional Certificate](https://www.coursera.org/professional-certificates/meta-back-end-developer) course "[APIs](https://coursera.org/share/6b194d0b3fab77646e7a95541aa77a38)", built using the Django REST Framework.
 
 ## Get started
 
