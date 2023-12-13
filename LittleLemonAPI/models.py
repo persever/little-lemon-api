@@ -31,7 +31,7 @@ class MenuItem(models.Model):
 class Order(models.Model):
     date = models.DateField(db_index=True)
     delivery_crew = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='delivery_crew', null=True)
-    status = models.CharField(max_length=255)
+    status = models.CharField(max_length=255, default='pending')
     total = models.DecimalField(max_digits=6, decimal_places=2)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 

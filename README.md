@@ -37,14 +37,14 @@ Usernames are case-sensitive.
     - **Endpoint:** */api/groups/manager/users/*
     - **Method:** `POST`
     - **Form fields:** `username`
-    - **Additional functionality:** View list of Manager names (`GET`), remove user from group (`DELETE`)
+    - **Additional functionality:** Admin can also remove users from the group (`DELETE`, `username`).
 2.	You can access the manager group with an admin token
     - **Endpoint:** */api/groups/manager/users/*
-    - **Note:** For endpoints requiring auth tokens for access, the token prefix is "Bearer"
+    - **Method:** `GET`
 3.	The admin can add menu items
     - **Endpoint:** */api/menu-items/*
     - **Method:** `POST`
-    - **Form fields:** `title`, `price`, `category`, `featured`
+    - **Form fields:** `title`, `price`, `category_id` (get at */api/categories/*), `featured`
 4.	The admin can add categories
     - **Endpoint:** */api/categories/*
     - **Method:** `POST`
@@ -53,6 +53,7 @@ Usernames are case-sensitive.
     - **Endpoint:** */api/token/*
     - **Method:** `POST`
     - **Form fields:** `username`, `password`
+    - **(Alt) Web browser login path:** */api/login/*
 6.	Managers can update the item of the day
     - **Endpoint:** */api/menu-items/<id\>*
     - **Method:** `PATCH`
@@ -67,12 +68,11 @@ Usernames are case-sensitive.
     - **Endpoint:** */api/orders/<id\>*
     - **Method:** `PATCH`
     - **Form field:** `delivery_crew`
-    - **Note:** `delivery_crew` field uses user id. Adrian (id 4) and Sana (id 6) are existing users assigned dto the Delivery crew group. 
+    - **Note:** `delivery_crew` field uses user id. Adrian (id `4`) and Sana (id `6`) are existing users assigned to the Delivery crew group. 
     - **Additional functionality:** `delivery_crew` is the only `Order` field Managers are allowed to update. `status` has a default of "pending" if there is no `delivery_crew`, and automatically updates to "assigned" when a `delivery_crew` is set. Managers may view all orders at */api/orders/*.
 9.	The delivery crew can access orders assigned to them
     - **Endpoint:** */api/orders/*
     - **Method:** `GET`
-    - **Additional functionality:** Delivery crew can see only the orders assigned to them.
 10. The delivery crew can update an order as delivered
     - **Endpoint:** */api/orders/<id\>*
     - **Method:** `PATCH`
@@ -81,9 +81,11 @@ Usernames are case-sensitive.
 11. Customers can register
     - **Web registration path:** */api/register/*
 12. Customers can log in using their username and password and get access tokens
-    - **Token endpoint for access and refresh tokens:** */api/token/* to acquire access and refresh tokens (`POST` with `username` and `password` fields), */api/token/refresh* to use refresh token (`POST` with *refresh* field)
-    - **Web login path:** */api/login/*
-    - **Additional functionality:** Log out from web view at */api/logout/*
+    - **Endpoint:** */api/token/*
+    - **Method:** `POST`
+    - **Form fields:** *username*, *password*
+    - **(Alt) Web browser login path:** */api/login/*
+    - **Additional functionality:** Make a `POST` request with the acquired *refresh* token at */api/token/refresh* to get a new access token when the previous expires without signing in again. Also, log out from a web session at */api/logout/*.
 13. Customers can browse all categories
     - **Endpoint:** */api/categories/*
     - **Method:** `GET`
@@ -96,27 +98,28 @@ Usernames are case-sensitive.
     - **Method:** `GET`
 16. Customers can paginate menu items
     - **Endpoint:** */api/menu-items/?page={{page number}}*
-    - **Note**: While staff see browsable JSON, customers and users not logged in see a template with page buttons. The buttons work in a web browser by updating the query string in the url, but if you are using an API client like Insomnia instead of a web browser you need to manually set the page query *(?page={{page number}})* in the request.
 17. Customers can sort menu items by price
     - **Endpoint:** */api/menu-items/?sortby=price* (or *=-price* for ascending prices)
 18. Customers can add menu items to the cart
-    - **Web browser endpoint (template view):** */api/menu-items/*
-    - **Web browser action:** Click "Add to cart".
-    - **API endpoint:** */api/cart/*
-    - **API methods:** `POST`
-    - **API field:** `menu_item_title`
-    - **API endpoint note:** The "Add to cart" HTML buttons in */api/menu-items/* will not work in an API client like Insomnia. If using an API client, the request must be made directly at */api/cart/*.
-    - **Additional functionality:** Customers can remove items from their cart by placing a `DELETE` request to */api/cart/* with a `menu-item_title` identifying the item to be removed.
+    - **Endpoint:** */api/cart/*
+    - **Methods:** `POST`
+    - **Field:** `menu_item_title`
+    - **(Alt) Web browser:**
+        - **Path:** */api/menu-items/*
+        - **Action:** Click "Add to cart".
+    - **Additional functionality:** Customers can also remove items from their cart (`DELETE`, `menu_item_title`). And in web, the user will be redirected to the cart after adding an item. (Though that's more suitable to retail UX than a food order.)
 19. Customers can access previously added items in the cart
     - **Endpoint:** */api/cart/*
+    - **Method:** `GET`
     - **Note**: I interpret this requirement as simply meaning "customers can view their cart".
 20. Customers can place orders
-    - **Web browser endpoint (template view):** */api/cart/*
-    - **Web browser action:** Click "Place order".
-    - **API endpoint:** */api/orders/*
-    - **API methods:** `POST`
-    - **API field:** `total`
+    - **Endpoint:** */api/orders/*
+    - **Methods:** `POST`
+    - **Field:** `total`
+    - **(Alt) Web browser:**
+        - **Path:** */api/cart/*
+        - **Action:** Click "Place order".
+    - **Additional functionality:** User's cart will clear on successful `Order` creation.
 21. Customers can browse their own orders
     - **Endpoint:** */api/orders/*
     - **Method:** `GET`
-    - **Additional functionality:** Customers can see only their own orders.

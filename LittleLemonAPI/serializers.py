@@ -18,8 +18,6 @@ class MenuItemSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if 'title' in attrs:
             attrs['title'] = bleach.clean(attrs['title'])
-        # for attr in attrs:
-        #     attrs[attr] = bleach.clean(attrs[attr])
 
         return super().validate(attrs)
 
@@ -44,7 +42,6 @@ class OrderSerializer(serializers.ModelSerializer):
         default=serializers.CurrentUserDefault()
     )
     date = serializers.DateField(read_only=True)
-    status = serializers.CharField(max_length=255, default='pending')
 
     def validate(self, attrs):
         validated_data = attrs

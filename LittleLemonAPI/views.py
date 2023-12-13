@@ -1,6 +1,5 @@
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.views import auth_login, auth_logout
-from django.core.exceptions import ValidationError
+from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 from rest_framework import viewsets
@@ -50,12 +49,12 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
             results = self.get_queryset()
 
             category = req.GET.get('category')
-            if (category):
+            if (category != None):
                 case_corrected_category_query = category[0].upper() + category[1::]
                 results = results.filter(category__title=case_corrected_category_query)
 
             sortby = req.GET.get('sortby') or req.GET.get('ordering')
-            if (sortby):
+            if (sortby != None):
                 results = results.order_by(sortby)
 
             page = req.GET.get('page')
@@ -80,7 +79,7 @@ class MenuItemsViewSet(viewsets.ModelViewSet):
         return super().update(req, *args, **kwargs)
 
 class OrdersViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.select_related('menu_item').all()
+    queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
     def get_permissions(self):
@@ -100,15 +99,15 @@ class OrdersViewSet(viewsets.ModelViewSet):
         req = self.request
         user = req.user
         if user.is_superuser or is_manager(req):
-            return Order.objects.select_related('menu_item').all()
+            return Order.objects.all()
         if is_crew(req):
-            return Order.objects.select_related('menu_item').filter(delivery_crew=user)
+            return Order.objects.filter(delivery_crew=user)
         return Order.objects.filter(user=user)
 
     def update(self, req, *args, **kwargs):
         status = req.data.get('status')
         if status and status.lower() != 'delivered':
-            raise ValidationError(message='"status" field may only be updated to "delivered". When an order is created, the default status is "pending" and when a Delivery crew is assigned it automatically updates to "assigned".', code='invalid')
+            return bad_req_resp('"status" field may only be updated to "delivered". When an order is created, the default status is "pending" and when a Delivery crew is assigned it automatically updates to "assigned".')
 
         kwargs['partial'] = True
         return super().update(req, *args, **kwargs)
@@ -171,25 +170,26 @@ def cart(req, menu_item_id=None):
         }
     )
 
-@api_view(['DELETE','GET','POST'])
+@api_view(['GET','POST','DELETE'])
 @permission_classes([IsAdminUser])
 def manager(req):
     return group_helper(req, 'Manager', 'managers')
 
-@api_view(['DELETE','GET','POST'])
+@api_view(['GET','POST','DELETE'])
 @permission_classes([IsAdminOrManager])
 def crew(req):
     return group_helper(req, 'Delivery crew', 'crew')
 
+@api_view(['GET', 'POST'])
 def register(req):
     if req.method == 'POST':
         form = UserCreationForm(req.POST)
         if form.is_valid():
             user = form.save()
             auth_login(req, user)
-            success_resp('Registration successful.')
+            return success_resp('Registration successful.')
 
-        bad_req_resp('Unsuccessful registration.')
+        return bad_req_resp('Unsuccessful registration.')
 
     form = UserCreationForm()
     return render(
@@ -198,6 +198,7 @@ def register(req):
         context={'register_form': form}
     )
 
+@api_view(['GET', 'POST'])
 def logout(req):
     if req.method == 'POST':
         auth_logout(req)
